@@ -7,8 +7,9 @@ import '../../providers/app_state.dart';
 import 'settings_shared_widgets.dart';
 
 class SettingsSystemSection extends StatelessWidget {
-  const SettingsSystemSection({super.key, required this.appState});
+  const SettingsSystemSection({super.key, required this.appState, this.firstFocusNode});
   final AppState appState;
+  final FocusNode? firstFocusNode;
 
   void _refreshCatalog(BuildContext context) {
     appState.loadCatalog();
@@ -47,6 +48,7 @@ class SettingsSystemSection extends StatelessWidget {
               icon: Icons.sync_rounded,
               title: 'ক্যাটালগ রিফ্রেশ',
               subtitle: 'চ্যানেল লিস্ট আপডেট করুন',
+              focusNode: firstFocusNode,
               onTap: () => _refreshCatalog(context),
             ),
 

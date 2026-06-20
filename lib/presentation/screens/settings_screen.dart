@@ -24,9 +24,33 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   // KeyboardListener এর FocusNode — autofocus: false রাখতে হবে
   final FocusNode _rootFocusNode = FocusNode(debugLabel: 'settings-root');
-  // সাইডবারের প্রথম আইটেমে ফোকাস নিয়ে যাওয়ার জন্য
-  final FocusNode _firstSidebarNode = FocusNode(debugLabel: 'settings-first-nav');
+
+  // ৩টি নেভ আইটেমের FocusNode — সাইডবারে দেওয়া হবে, এখানে owner থাকায়
+  // কনটেন্ট থেকে ← চাপলে সঠিক নেভ আইটেমে ফোকাস ফেরানো সহজ হয়
+  final List<FocusNode> _navNodes = [
+    FocusNode(debugLabel: 'settings-nav-0'),
+    FocusNode(debugLabel: 'settings-nav-1'),
+    FocusNode(debugLabel: 'settings-nav-2'),
+  ];
+
+  // প্রতিটি সেকশনের প্রথম ফোকাসেবল উইজেটের জন্য আলাদা নোড — → চাপলে
+  // সাইডবার থেকে সরাসরি এখানে ফোকাস পাঠানো হবে
+  final FocusNode _accountEntryNode = FocusNode(debugLabel: 'settings-account-entry');
+  final FocusNode _tvEntryNode = FocusNode(debugLabel: 'settings-tv-entry');
+  final FocusNode _systemEntryNode = FocusNode(debugLabel: 'settings-system-entry');
+
   _Section _activeSection = _Section.account;
+
+  FocusNode get _activeContentEntryNode {
+    switch (_activeSection) {
+      case _Section.account:
+        return _accountEntryNode;
+      case _Section.tvSettings:
+        return _tvEntryNode;
+      case _Section.system:
+        return _systemEntryNode;
+    }
+  }
 
   @override
   void initState() {
@@ -40,7 +64,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // স্ক্রিন লোড হলে সাইডবারের প্রথম আইটেমে ফোকাস
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _firstSidebarNode.requestFocus();
+        _navNodes[0].requestFocus();
       }
     });
   }
@@ -48,7 +72,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _rootFocusNode.dispose();
-    _firstSidebarNode.dispose();
+    for (final n in _navNodes) n.dispose();
+    _accountEntryNode.dispose();
+    _tvEntryNode.dispose();
+    _systemEntryNode.dispose();
     super.dispose();
   }
 
@@ -86,11 +113,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 policy: OrderedTraversalPolicy(),
                 child: SettingsNavSidebar(
                   activeSection: _activeSection.index,
-                  firstFocusNode: _firstSidebarNode,
+                  navNodes: _navNodes,
                   onSelect: (i) {
                     setState(() => _activeSection = _Section.values[i]);
                   },
                   onBack: _safelyPop,
+                  onMoveRight: () => _activeContentEntryNode.requestFocus(),
                 ),
               ),
 
@@ -102,26 +130,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // ── Right Content Area ────────────────────────────────────
               Expanded(
                 child: SafeArea(
-                  child: FocusTraversalGroup(
-                    policy: WidgetOrderTraversalPolicy(),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 48,
-                        vertical: 32,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: _buildActiveSection(appState),
-                          ),
-                          const SizedBox(height: 40),
-                          Divider(color: Colors.white.withOpacity(0.05)),
-                          const SizedBox(height: 16),
-                          SettingsStatusFooter(appState: appState),
-                        ],
+                  child: Focus(
+                    skipTraversal: true,
+                    onKeyEvent: (node, event) {
+                      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                      // বাগ ফিক্স সম্পূরক: কনটেন্ট এরিয়া থেকে ← চাপলে আগে কিছুই
+                      // হতো না (কোনো হ্যান্ডলার ছিল না), এখন সক্রিয় নেভ
+                      // আইটেমে ফোকাস ফিরিয়ে দেওয়া হচ্ছে — যাতে যাওয়া-আসা
+                      // দুই দিকেই কাজ করে।
+                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                        _navNodes[_activeSection.index].requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: FocusTraversalGroup(
+                      policy: WidgetOrderTraversalPolicy(),
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 48,
+                          vertical: 32,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: _buildActiveSection(appState),
+                            ),
+                            const SizedBox(height: 40),
+                            Divider(color: Colors.white.withOpacity(0.05)),
+                            const SizedBox(height: 16),
+                            SettingsStatusFooter(appState: appState),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -137,11 +180,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildActiveSection(AppState appState) {
     switch (_activeSection) {
       case _Section.account:
-        return SettingsAccountSection(key: const ValueKey('account'), appState: appState);
+        return SettingsAccountSection(
+          key: const ValueKey('account'),
+          appState: appState,
+          firstFocusNode: _accountEntryNode,
+        );
       case _Section.tvSettings:
-        return SettingsTvSection(key: const ValueKey('tv'), appState: appState);
+        return SettingsTvSection(
+          key: const ValueKey('tv'),
+          appState: appState,
+          firstFocusNode: _tvEntryNode,
+        );
       case _Section.system:
-        return SettingsSystemSection(key: const ValueKey('system'), appState: appState);
+        return SettingsSystemSection(
+          key: const ValueKey('system'),
+          appState: appState,
+          firstFocusNode: _systemEntryNode,
+        );
     }
   }
 }

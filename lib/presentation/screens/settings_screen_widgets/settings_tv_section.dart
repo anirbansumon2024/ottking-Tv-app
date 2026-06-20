@@ -7,8 +7,9 @@ import '../../providers/app_state.dart';
 import 'settings_shared_widgets.dart';
 
 class SettingsTvSection extends StatelessWidget {
-  const SettingsTvSection({super.key, required this.appState});
+  const SettingsTvSection({super.key, required this.appState, this.firstFocusNode});
   final AppState appState;
+  final FocusNode? firstFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,7 @@ class SettingsTvSection extends StatelessWidget {
                   ? 'চালু — অ্যাপ খুললেই লাইভ টিভি শুরু হবে'
                   : 'বন্ধ — হোম পেজে যাবে',
               highlight: isBootEnabled,
+              focusNode: firstFocusNode,
               // টিভি রিমোটের ফোকাস যেন কনফ্লিক্ট না করে, তাই সুইচের onChanged ডিরেক্ট কার্ডের টগলে পাস করা হলো
               trailing: Switch(
                 value: isBootEnabled,

@@ -105,9 +105,15 @@ class _ChannelGridState extends State<ChannelGrid> {
                         if (hasFocus) {
                           // ফোকাস হলে গ্রিড আইটেম স্ক্রিনে দৃশ্যমান করা
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (widget.chNodes[i].context != null) {
+                            // বাগ ফিক্স: ক্যাটাগরি দ্রুত পরিবর্তন হলে এই কলব্যাক
+                            // ফায়ার হওয়ার আগেই chNodes লিস্ট ক্লিয়ার/ছোট হয়ে
+                            // যেতে পারে — তখন chNodes[i] অ্যাক্সেস করলে RangeError
+                            // থ্রো হয়ে অ্যাপ ক্র্যাশ করত। এখন বাউন্ডস চেক করা হলো।
+                            if (i >= widget.chNodes.length) return;
+                            final node = widget.chNodes[i];
+                            if (node.context != null) {
                               Scrollable.ensureVisible(
-                                widget.chNodes[i].context!,
+                                node.context!,
                                 duration: const Duration(milliseconds: 250),
                                 alignment: 0.5,
                               );

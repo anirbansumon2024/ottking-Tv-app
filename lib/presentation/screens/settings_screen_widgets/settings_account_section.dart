@@ -10,8 +10,10 @@ import 'auth_dialog.dart';
 import 'subscription_dialog.dart';
 
 class SettingsAccountSection extends StatelessWidget {
-  const SettingsAccountSection({super.key, required this.appState});
+  const SettingsAccountSection({super.key, required this.appState, this.firstFocusNode});
   final AppState appState;
+  // সাইডবার থেকে → চাপলে সরাসরি এই সেকশনের প্রথম কার্ডে ফোকাস আনার জন্য
+  final FocusNode? firstFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +41,7 @@ class SettingsAccountSection extends StatelessWidget {
                   ? appState.userProfile?.email ?? ''
                   : 'প্রিমিয়াম চ্যানেল পেতে লগইন করুন',
               highlight: appState.isAuthenticated,
+              focusNode: firstFocusNode,
               onTap: () => showDialog(
                 context: context,
                 barrierDismissible: false, // রিমোট ইউজারদের জন্য নিরাপদ পপ-আপ কন্ট্রোল

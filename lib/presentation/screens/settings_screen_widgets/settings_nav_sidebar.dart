@@ -11,21 +11,25 @@ class SettingsNavSidebar extends StatefulWidget {
     required this.activeSection,
     required this.onSelect,
     required this.onBack,
-    this.firstFocusNode, // বাইরে থেকে প্রথম ফোকাস নোড পাস করার সুযোগ
+    required this.navNodes, // অ্যাকাউন্ট / TV / সিস্টেম — ৩টি ফোকাস নোড, প্যারেন্ট থেকে আসে
+    // বাগ ফিক্স: → চাপলে আগে FocusScope.of(context).nextFocus() কল হতো, যা এই
+    // সাইডবারের নিজস্ব FocusTraversalGroup স্কোপের মধ্যেই আটকে থাকতো এবং কখনোই
+    // ডানপাশের কনটেন্ট এরিয়াতে যেতে পারতো না। এখন সরাসরি কলব্যাক দিয়ে
+    // কনটেন্টের প্রথম ফোকাসেবল উইজেটে ফোকাস পাঠানো হবে।
+    this.onMoveRight,
   });
 
   final int activeSection;
   final ValueChanged<int> onSelect;
   final VoidCallback onBack;
-  final FocusNode? firstFocusNode;
+  final List<FocusNode> navNodes;
+  final VoidCallback? onMoveRight;
 
   @override
   State<SettingsNavSidebar> createState() => _SettingsNavSidebarState();
 }
 
 class _SettingsNavSidebarState extends State<SettingsNavSidebar> {
-  // ব্যাক বাটন + ৩টি নেভ আইটেম = ৪টি FocusNode
-  late final List<FocusNode> _nodes;
   final FocusNode _backNode = FocusNode(debugLabel: 'settings-back-btn');
 
   static const _items = [
@@ -47,26 +51,8 @@ class _SettingsNavSidebarState extends State<SettingsNavSidebar> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    // প্রথম নেভ আইটেমের জন্য বাইরে থেকে আসা FocusNode ব্যবহার করা হচ্ছে
-    // যাতে SettingsScreen সরাসরি ফোকাস দিতে পারে
-    _nodes = [
-      widget.firstFocusNode ?? FocusNode(debugLabel: 'settings-nav-0'),
-      FocusNode(debugLabel: 'settings-nav-1'),
-      FocusNode(debugLabel: 'settings-nav-2'),
-    ];
-  }
-
-  @override
   void dispose() {
     _backNode.dispose();
-    // প্রথম নোডটি বাইরে থেকে এলে dispose করব না
-    if (widget.firstFocusNode == null) {
-      _nodes[0].dispose();
-    }
-    _nodes[1].dispose();
-    _nodes[2].dispose();
     super.dispose();
   }
 
@@ -97,7 +83,7 @@ class _SettingsNavSidebarState extends State<SettingsNavSidebar> {
                       if (event is KeyDownEvent) {
                         // ব্যাক বাটন থেকে নিচে গেলে প্রথম নেভ আইটেমে
                         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                          _nodes[0].requestFocus();
+                          widget.navNodes[0].requestFocus();
                           return KeyEventResult.handled;
                         }
                       }
@@ -124,12 +110,13 @@ class _SettingsNavSidebarState extends State<SettingsNavSidebar> {
               final item = _items[i];
               final isActive = widget.activeSection == i;
               return _NavItem(
-                focusNode: _nodes[i],
+                focusNode: widget.navNodes[i],
                 icon: item.icon,
                 label: item.label,
                 hint: item.hint,
                 isActive: isActive,
                 onTap: () => widget.onSelect(i),
+                onMoveRight: widget.onMoveRight,
                 // প্রথম আইটেম থেকে উপরে গেলে ব্যাক বাটনে ফোকাস
                 onKeyEvent: i == 0
                     ? (event) {
@@ -236,6 +223,7 @@ class _NavItem extends StatefulWidget {
     required this.isActive,
     required this.onTap,
     this.onKeyEvent,
+    this.onMoveRight,
   });
   final FocusNode focusNode;
   final IconData icon;
@@ -244,6 +232,7 @@ class _NavItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onTap;
   final KeyEventResult Function(KeyEvent)? onKeyEvent;
+  final VoidCallback? onMoveRight;
 
   @override
   State<_NavItem> createState() => _NavItemState();
@@ -270,10 +259,16 @@ class _NavItemState extends State<_NavItem> {
             widget.onTap();
             return KeyEventResult.handled;
           }
-          // ডানে গেলে কনটেন্ট এরিয়ায় ফোকাস (Flutter ট্র্যাভার্সাল হ্যান্ডেল করবে)
+          // ডানে গেলে কনটেন্ট এরিয়ায় ফোকাস
+          // বাগ ফিক্স: আগে এখানে FocusScope.of(context).nextFocus() কল হতো।
+          // কিন্তু সাইডবার নিজেই একটা আলাদা FocusTraversalGroup স্কোপের ভিতরে
+          // থাকায় nextFocus() কেবল এই স্কোপের (সাইডবারের) ভেতরেই ফোকাস ঘোরাতো,
+          // কখনো ডানপাশের কনটেন্ট এরিয়াতে যেতে পারতো না — তাই "অ্যাকাউন্ট
+          // সিলেক্ট করার পর রাইট সাইডের অপশনে ফোকাস না যাওয়া" বাগটি হতো।
+          // এখন সরাসরি প্যারেন্ট থেকে পাঠানো FocusNode-এ রিকোয়েস্ট ফোকাস করা হচ্ছে।
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            FocusScope.of(context).nextFocus();
+            widget.onMoveRight?.call();
             return KeyEventResult.handled;
           }
           return widget.onKeyEvent?.call(event) ?? KeyEventResult.ignored;
