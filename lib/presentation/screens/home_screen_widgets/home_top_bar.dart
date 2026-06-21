@@ -130,7 +130,7 @@ class _TvSettingsButtonState extends State<_TvSettingsButton> {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'সেটিংস',
+      message: 'Settings',
       child: Focus(
         focusNode: widget.focusNode,
         onFocusChange: (v) => setState(() => _focused = v),
