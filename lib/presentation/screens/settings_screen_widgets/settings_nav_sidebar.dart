@@ -259,13 +259,7 @@ class _NavItemState extends State<_NavItem> {
             widget.onTap();
             return KeyEventResult.handled;
           }
-          // ডানে গেলে কনটেন্ট এরিয়ায় ফোকাস
-          // বাগ ফিক্স: আগে এখানে FocusScope.of(context).nextFocus() কল হতো।
-          // কিন্তু সাইডবার নিজেই একটা আলাদা FocusTraversalGroup স্কোপের ভিতরে
-          // থাকায় nextFocus() কেবল এই স্কোপের (সাইডবারের) ভেতরেই ফোকাস ঘোরাতো,
-          // কখনো ডানপাশের কনটেন্ট এরিয়াতে যেতে পারতো না — তাই "অ্যাকাউন্ট
-          // সিলেক্ট করার পর রাইট সাইডের অপশনে ফোকাস না যাওয়া" বাগটি হতো।
-          // এখন সরাসরি প্যারেন্ট থেকে পাঠানো FocusNode-এ রিকোয়েস্ট ফোকাস করা হচ্ছে।
+        ।
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.arrowRight) {
             widget.onMoveRight?.call();
