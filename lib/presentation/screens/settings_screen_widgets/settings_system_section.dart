@@ -55,8 +55,8 @@ class SettingsSystemSection extends StatelessWidget {
             // ── ২. অ্যাপ আপডেট ────────────────────────────────────────────
             SettingCard(
               icon: Icons.system_update_rounded,
-              title: 'অ্যাপ আপডেট',
-              subtitle: 'নতুন ভার্সন চেক করুন',
+              title: 'Updates',
+              subtitle: 'Upcoming new versions',
               onTap: () => _checkForUpdates(context),
             ),
           ],
@@ -70,8 +70,8 @@ class SettingsSystemSection extends StatelessWidget {
             // ── ৩. ডেভেলপার ────────────────────────────────────────────────
             SettingCard(
               icon: Icons.code_rounded,
-              title: 'ডেভেলপার',
-              subtitle: 'Anirban Sumon',
+              title: 'Developers',
+              subtitle: 'Developers info',
               onTap: () => showDialog(
                 context: context,
                 builder: (_) => const _DeveloperDialog(),
@@ -81,8 +81,8 @@ class SettingsSystemSection extends StatelessWidget {
             // ── ৪. অ্যাপ তথ্য ──────────────────────────────────────────────
             SettingCard(
               icon: Icons.info_outline_rounded,
-              title: 'অ্যাপ তথ্য',
-              subtitle: 'ভার্সন ও সিস্টেম তথ্য',
+              title: 'App',
+              subtitle: 'App info',
               onTap: () => showDialog(
                 context: context,
                 builder: (_) => const _AppInfoDialog(),
@@ -120,7 +120,7 @@ class _DeveloperDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'প্রধান ডেভেলপার ও প্রজেক্ট আর্কিটেক্ট:',
+            'Developers:',
             style: TextStyle(color: Colors.white54, fontSize: 13),
           ),
           const SizedBox(height: 6),
@@ -159,7 +159,7 @@ class _DeveloperDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text('বন্ধ', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text('close', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -184,14 +184,14 @@ class _AppInfoDialog extends StatelessWidget {
         children: [
           Icon(Icons.info_rounded, color: AppTheme.primary),
           SizedBox(width: 10),
-          Text('অ্যাপ তথ্য', style: TextStyle(color: Colors.white)),
+          Text('App Info', style: TextStyle(color: Colors.white)),
         ],
       ),
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Live TV Player',
+            'OTTking',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
