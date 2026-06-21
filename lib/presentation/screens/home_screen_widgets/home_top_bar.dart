@@ -89,7 +89,7 @@ class HomeTopBar extends StatelessWidget {
                     color: AppTheme.primary, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '${appState.channels.length} চ্যানেল',
+                  '${appState.channels.length} Channels',
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
