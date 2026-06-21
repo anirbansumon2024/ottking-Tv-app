@@ -1,9 +1,6 @@
 // lib/presentation/screens/player_widgets/player_bottom_bar.dart
 //
-// বাগ ফিক্স: এই বার থেকে Play/Pause বাটন সম্পূর্ণ সরিয়ে ফেলা হয়েছে।
-// এখন চ্যানেল পরিবর্তন up/down (রিমোট) দিয়ে হয় এবং চ্যানেল লিস্ট খোলা হয়
-// → (right arrow) চেপে — তাই নিচের বারে কোনো ফোকাসেবল বাটনের প্রয়োজন নেই,
-// এটি এখন শুধু একটি প্যাসিভ "LIVE" ইন্ডিকেটর দেখায়।
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
