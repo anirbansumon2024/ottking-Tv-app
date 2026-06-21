@@ -83,13 +83,13 @@ class _AuthDialogState extends State<AuthDialog> {
               appState.logout();
               Navigator.pop(context);
             },
-            child: const Text('লগআউট',
+            child: const Text('Logout',
                 style: TextStyle(
                     color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('বাতিল',
+          child: const Text('Close',
               style: TextStyle(color: Colors.white38)),
         ),
         FilledButton(
