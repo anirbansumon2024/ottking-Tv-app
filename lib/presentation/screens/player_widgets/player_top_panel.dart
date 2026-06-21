@@ -100,9 +100,6 @@ class PlayerTopPanel extends StatelessWidget {
             ),
           ),
         ),
-
-      
-       
       ],
     );
   }
