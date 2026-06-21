@@ -17,6 +17,7 @@ class PlayerTopPanel extends StatelessWidget {
   final int currentIndex;
   final int totalChannels;
   final String typedNumber; 
+  final bool isPlaying;
 
   @override
   Widget build(BuildContext context) {
