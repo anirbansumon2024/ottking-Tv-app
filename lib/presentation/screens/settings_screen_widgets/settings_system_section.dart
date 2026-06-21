@@ -46,8 +46,8 @@ class SettingsSystemSection extends StatelessWidget {
             // ── ১. ক্যাটালগ রিফ্রেশ ──────────────────────────────────────────
             SettingCard(
               icon: Icons.sync_rounded,
-              title: 'ক্যাটালগ রিফ্রেশ',
-              subtitle: 'চ্যানেল লিস্ট আপডেট করুন',
+              title: 'Reload Api',
+              subtitle: 'Fetch all Api Response',
               focusNode: firstFocusNode,
               onTap: () => _refreshCatalog(context),
             ),
