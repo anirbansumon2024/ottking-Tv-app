@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({
+    super.key,
     required this.hasError,
     required this.retryCount,
     required this.maxRetry,
