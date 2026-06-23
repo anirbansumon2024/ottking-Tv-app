@@ -154,7 +154,7 @@ class ChannelCard extends StatelessWidget {
             child: channel.logoUrl.trim().isNotEmpty
                 ? Image.network(
                     channel.logoUrl.trim(),
-                    fit: BoxFit.contain,
+                    fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
                     loadingBuilder: (ctx, child, prog) =>
