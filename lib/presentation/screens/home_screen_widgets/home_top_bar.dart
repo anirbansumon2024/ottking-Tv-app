@@ -60,8 +60,7 @@ class HomeTopBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.stars_rounded,
-                      color: Color(0xFFEAB308), size: 16),
+                  const Icon(Icons.stars_rounded, color: Color(0xFFEAB308), size: 16),
                   const SizedBox(width: 6),
                   Text(
                     '${appState.userProfile!.email.split('@').first}  •  ${appState.userProfile!.plan}',
@@ -85,8 +84,7 @@ class HomeTopBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.live_tv_rounded,
-                    color: AppTheme.primary, size: 16),
+                const Icon(Icons.live_tv_rounded, color: AppTheme.primary, size: 16),
                 const SizedBox(width: 6),
                 Text(
                   '${appState.channels.length} চ্যানেল',
@@ -125,25 +123,24 @@ class _TvSettingsButton extends StatefulWidget {
 }
 
 class _TvSettingsButtonState extends State<_TvSettingsButton> {
-  bool _focused = false;
-
   @override
   Widget build(BuildContext context) {
+    // সরাসরি focusNode এর অবস্থা থেকে focused চেক করা হচ্ছে
+    final isFocused = widget.focusNode.hasFocus;
+
     return Tooltip(
       message: 'সেটিংস',
       child: Focus(
         focusNode: widget.focusNode,
-        onFocusChange: (v) => setState(() => _focused = v),
+        onFocusChange: (v) => setState(() {}), // ফোকাস চেঞ্জ হলে রিফ্রেশ
         onKeyEvent: (_, e) {
           if (e is! KeyDownEvent) return KeyEventResult.ignored;
-          // OK চাপলে সেটিংসে যাবে
+
           if (e.logicalKey == LogicalKeyboardKey.enter ||
-              e.logicalKey == LogicalKeyboardKey.select ||
-              e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              e.logicalKey == LogicalKeyboardKey.select) {
             widget.onTap();
             return KeyEventResult.handled;
           }
-          // ↓ চাপলে ক্যাটাগরি সাইডবারে
           if (e.logicalKey == LogicalKeyboardKey.arrowDown) {
             widget.onDown?.call();
             return KeyEventResult.handled;
@@ -156,23 +153,18 @@ class _TvSettingsButtonState extends State<_TvSettingsButton> {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _focused ? AppTheme.primary.withOpacity(0.2) : AppTheme.card,
+              color: isFocused ? AppTheme.primary.withOpacity(0.2) : AppTheme.card,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: _focused ? AppTheme.primary : AppTheme.border,
+                color: isFocused ? AppTheme.primary : AppTheme.border,
               ),
-              boxShadow: _focused
-                  ? [
-                      BoxShadow(
-                          color: AppTheme.primary.withOpacity(0.3),
-                          blurRadius: 10,
-                          spreadRadius: 1)
-                    ]
+              boxShadow: isFocused
+                  ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 10)]
                   : [],
             ),
             child: Icon(
               Icons.settings_rounded,
-              color: _focused ? AppTheme.primary : Colors.white70,
+              color: isFocused ? AppTheme.primary : Colors.white70,
               size: 22,
             ),
           ),
