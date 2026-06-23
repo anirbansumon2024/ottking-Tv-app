@@ -34,100 +34,101 @@ class _ChannelGridState extends State<ChannelGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Header ─────────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, top: 8, left: 4),
-          child: Row(
-            children: [
-              Text(
-                '${widget.categoryName} CHANNELS',
-                style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${widget.channels.length}',
+    // ক্যাটাগরি পরিবর্তনের সময় গ্রিড রিরেন্ডার নিশ্চিত করতে KeyedSubtree
+    return KeyedSubtree(
+      key: ValueKey(widget.categoryName),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12, top: 8, left: 4),
+            child: Row(
+              children: [
+                Text(
+                  '${widget.categoryName} CHANNELS',
                   style: const TextStyle(
-                    color: AppTheme.primary,
+                    color: Colors.white38,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        // ── Grid ──────────────────────────────────────────────────────
-        Expanded(
-          child: widget.channels.isEmpty
-              ? const Center(
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                   child: Text(
-                    'কোনো চ্যানেল পাওয়া যায়নি',
-                    style: TextStyle(color: Colors.white38, fontSize: 16),
+                    '${widget.channels.length}',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                )
-              : GridView.builder(
-                  controller: _scrollController,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.4,
-                  ),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: widget.channels.length,
-                  itemBuilder: (context, i) {
-                    final ch = widget.channels[i];
-                    final origIdx = widget.appState.channels.indexOf(ch);
-                    final playing = widget.appState.currentChannelIndex == origIdx;
-
-                    if (widget.chNodes.length <= i) return const SizedBox.shrink();
-
-                    return TvFocusCard(
-                      focusNode: widget.chNodes[i],
-                      selected: playing,
-                      padding: EdgeInsets.zero,
-                      onFocusChange: (hasFocus) {
-                        if (hasFocus) {
-                          // ফোকাস হলে গ্রিড আইটেম স্ক্রিনে দৃশ্যমান করা
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (widget.chNodes[i].context != null) {
-                              Scrollable.ensureVisible(
-                                widget.chNodes[i].context!,
-                                duration: const Duration(milliseconds: 250),
-                                alignment: 0.5,
-                              );
-                            }
-                          });
-                        }
-                      },
-                      onTap: () {
-                        widget.appState.selectChannelByIndex(origIdx);
-                        Navigator.pushNamed(context, '/player');
-                      },
-                      child: ChannelCard(
-                        channel: ch,
-                        isPlaying: playing,
-                      ),
-                    );
-                  },
                 ),
-        ),
-      ],
+              ],
+            ),
+          ),
+
+          // ── Grid ──────────────────────────────────────────────────────
+          Expanded(
+            child: widget.channels.isEmpty
+                ? const Center(
+                    child: Text(
+                      'কোনো চ্যানেল পাওয়া যায়নি',
+                      style: TextStyle(color: Colors.white38, fontSize: 16),
+                    ),
+                  )
+                : GridView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(4),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.4,
+                    ),
+                    itemCount: widget.channels.length,
+                    itemBuilder: (context, i) {
+                      // ইনডেক্স সেফটি চেক
+                      if (i >= widget.chNodes.length) return const SizedBox.shrink();
+
+                      final ch = widget.channels[i];
+                      final origIdx = widget.appState.channels.indexOf(ch);
+                      final playing = widget.appState.currentChannelIndex == origIdx;
+
+                      return TvFocusCard(
+                        focusNode: widget.chNodes[i],
+                        selected: playing,
+                        padding: EdgeInsets.zero,
+                        onFocusChange: (hasFocus) {
+                          if (hasFocus) {
+                            // ফোকাস আইটেমকে স্ক্রিনের ভিউতে নিয়ে আসা
+                            Scrollable.ensureVisible(
+                              context,
+                              duration: const Duration(milliseconds: 200),
+                              alignment: 0.5,
+                            );
+                          }
+                        },
+                        onTap: () {
+                          widget.appState.selectChannelByIndex(origIdx);
+                          Navigator.pushNamed(context, '/player');
+                        },
+                        child: ChannelCard(
+                          channel: ch,
+                          isPlaying: playing,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -155,18 +156,13 @@ class ChannelCard extends StatelessWidget {
                 ? Image.network(
                     channel.logoUrl.trim(),
                     fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    loadingBuilder: (ctx, child, prog) =>
-                        prog == null ? child : _logoPlaceholder(),
                     errorBuilder: (_, __, ___) => _logoPlaceholder(),
                   )
                 : _logoPlaceholder(),
           ),
+          // Gradient Overlay
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: 0, right: 0, bottom: 0,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
@@ -178,36 +174,25 @@ class ChannelCard extends StatelessWidget {
               ),
               child: Text(
                 channel.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
+          // Badges
           Positioned(
-            top: 6,
-            left: 6,
+            top: 6, left: 6,
             child: Row(
               children: [
                 if (channel.isPremium == 1)
-                  const _Badge(
-                    label: 'PREMIUM',
-                    bg: Color(0xFFEAB308),
-                    fg: Colors.black,
-                  ),
+                  const _Badge(label: 'PREMIUM', bg: Color(0xFFEAB308), fg: Colors.black),
                 const SizedBox(width: 3),
-                _Badge(
-                  label: channel.quality.toUpperCase(),
-                  bg: Colors.black.withOpacity(0.7),
-                  fg: AppTheme.primary,
-                ),
+                _Badge(label: channel.quality.toUpperCase(), bg: Colors.black.withOpacity(0.7), fg: AppTheme.primary),
               ],
             ),
           ),
+          // Playing Indicator
           if (isPlaying)
             Positioned.fill(
               child: Container(
@@ -217,10 +202,7 @@ class ChannelCard extends StatelessWidget {
                 ),
                 child: const Align(
                   alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: EdgeInsets.all(6),
-                    child: _LiveDot(),
-                  ),
+                  child: Padding(padding: EdgeInsets.all(6), child: _LiveDot()),
                 ),
               ),
             ),
@@ -245,8 +227,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
-      child: Text(label,
-          style: TextStyle(color: fg, fontSize: 8, fontWeight: FontWeight.w900)),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 8, fontWeight: FontWeight.w900)),
     );
   }
 }
@@ -258,20 +239,13 @@ class _LiveDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.red,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(radius: 3, backgroundColor: Colors.white),
           SizedBox(width: 4),
-          Text('LIVE',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold)),
+          Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
         ],
       ),
     );
