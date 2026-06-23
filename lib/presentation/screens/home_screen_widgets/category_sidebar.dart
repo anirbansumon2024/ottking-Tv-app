@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import '../../../core/theme/app_theme.dart';
 
 class CategorySidebar extends StatelessWidget {
@@ -12,7 +11,6 @@ class CategorySidebar extends StatelessWidget {
     required this.catNodes,
     required this.selectedIndex,
     required this.onSelect,
-    // ডানে গেলে চ্যানেল গ্রিডের প্রথম আইটেমে সরাসরি ফোকাস দেওয়ার callback
     this.onMoveRight,
   });
 
@@ -24,41 +22,44 @@ class CategorySidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 12, top: 8),
-          child: Text(
-            '🔥 CATEGORIES',
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+    // ফোকাস ট্র্যাভার্সাল গ্রুপ ব্যবহার করলে ফোকাস বাউন্ডারি ঠিক থাকে
+    return FocusTraversalGroup(
+      policy: OrderedTraversalPolicy(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 12, top: 8),
+            child: Text(
+              '🔥 CATEGORIES',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
             ),
           ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: cats.length,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (context, i) {
-              final cat = cats[i];
-              return CategoryItem(
-                focusNode: catNodes[i],
-                icon: cat['icon']!,
-                name: cat['name']!,
-                selected: selectedIndex == i,
-                onTap: () => onSelect(i),
-                onFocus: () => onSelect(i),
-                // ডানে arrow চাপলে callback দিয়ে চ্যানেল গ্রিডে যাবে
-                onMoveRight: onMoveRight,
-              );
-            },
+          Expanded(
+            child: ListView.builder(
+              itemCount: cats.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (context, i) {
+                final cat = cats[i];
+                return CategoryItem(
+                  focusNode: catNodes[i],
+                  icon: cat['icon']!,
+                  name: cat['name']!,
+                  selected: selectedIndex == i,
+                  onTap: () => onSelect(i),
+                  onFocus: () => onSelect(i),
+                  onMoveRight: onMoveRight,
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -88,31 +89,33 @@ class CategoryItem extends StatefulWidget {
 }
 
 class _CategoryItemState extends State<CategoryItem> {
-  bool _focused = false;
+  // FocusNode থেকেই ফোকাস স্টেট সরাসরি জানা যায়, আলাদা bool এর প্রয়োজন নেই
+  // তবে অ্যানিমেশন বা ডিজাইনের জন্য এটি রাখা যেতে পারে
 
   @override
   Widget build(BuildContext context) {
-    final active = _focused || widget.selected;
+    // সরাসরি ফোকাস নোড থেকে ফোকাস চেক করা বেশি সলিড
+    final isFocused = widget.focusNode.hasFocus;
+    final active = isFocused || widget.selected;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Focus(
         focusNode: widget.focusNode,
         onFocusChange: (v) {
-          setState(() => _focused = v);
+          // রেন্ডার আপডেট করার জন্য
+          setState(() {});
           if (v) widget.onFocus();
         },
         onKeyEvent: (_, e) {
           if (e is! KeyDownEvent) return KeyEventResult.ignored;
 
-          // OK / Enter / Select → সিলেক্ট করে ক্যাটাগরি
           if (e.logicalKey == LogicalKeyboardKey.enter ||
-              e.logicalKey == LogicalKeyboardKey.select ||
-              e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              e.logicalKey == LogicalKeyboardKey.select) {
             widget.onTap();
             return KeyEventResult.handled;
           }
 
-          // → চাপলে চ্যানেল গ্রিডে সরাসরি ফোকাস
           if (e.logicalKey == LogicalKeyboardKey.arrowRight) {
             widget.onMoveRight?.call();
             return KeyEventResult.handled;
@@ -123,10 +126,10 @@ class _CategoryItemState extends State<CategoryItem> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: _focused
+              color: isFocused
                   ? AppTheme.primary
                   : widget.selected
                       ? AppTheme.primary.withOpacity(0.15)
