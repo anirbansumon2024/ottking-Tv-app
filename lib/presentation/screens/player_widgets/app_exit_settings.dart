@@ -1,73 +1,9 @@
-import 'dart:io';
+// lib/presentation/screens/player_widgets/app_info_dialog.dart (বা আপনার সেটিংস ফাইল)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/app_state.dart';
 
-/// ───────────────────────────────────────────────────────────────────────────
-/// ১. গ্লোবাল অ্যাপ এক্সিট হ্যান্ডলার মেকানিজম
-/// ───────────────────────────────────────────────────────────────────────────
-class AppExitHandler {
-  static Future<void> handleExit({
-    required BuildContext context,
-    required AppState appState,
-    required VoidCallback onBeforeDispose,
-  }) async {
-    final shouldFullExit = appState.isPlayerBootEnabled;
-
-    if (shouldFullExit) {
-      if (!context.mounted) return;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.95),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppTheme.primary, width: 1.5),
-          ),
-          title: const Text(
-            'অ্যাপ এক্সিট করবেন?',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'সম্পূর্ণ অ্যাপ বন্ধ করতে চান?',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('না', style: TextStyle(color: Colors.white54)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('হ্যাঁ', style: TextStyle(color: AppTheme.primary)),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true && context.mounted) {
-        onBeforeDispose();
-        try { await WakelockPlus.disable(); } catch (_) {}
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-        exit(0);
-      }
-    } else {
-      onBeforeDispose();
-      try { await WakelockPlus.disable(); } catch (_) {}
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
-  }
-}
-
-/// ───────────────────────────────────────────────────────────────────────────
-/// ২. প্লেয়ার সেটিংস ডায়লগ উইজেট (Android TV Remote Optimized)
-/// ───────────────────────────────────────────────────────────────────────────
 class PlayerSettingsDialog extends StatefulWidget {
   const PlayerSettingsDialog({
     super.key,
@@ -87,25 +23,19 @@ class PlayerSettingsDialog extends StatefulWidget {
 }
 
 class _PlayerSettingsDialogState extends State<PlayerSettingsDialog> {
-  final List<FocusNode> _focusNodes = [];
+  // এখানে আইটেম সংখ্যা ডায়নামিকালি ক্যালকুলেট হবে
+  late List<FocusNode> _focusNodes;
   int _focusedIndex = 0;
-  int _totalItems = 0;
 
   @override
   void initState() {
     super.initState();
-    
-    _totalItems = widget.state.isAuthenticated ? 4 : 3; 
-    _totalItems += 1; // সেটিংস অ্যাকশন বাটনের জন্য
-
-    for (int i = 0; i < _totalItems; i++) {
-      _focusNodes.add(FocusNode(debugLabel: 'settings-item-$i'));
-    }
+    // ৪টি আইটেম: Boot Switch, User Info(optional), App Info, Settings Action
+    final itemCount = widget.state.isAuthenticated ? 4 : 3;
+    _focusNodes = List.generate(itemCount, (i) => FocusNode(debugLabel: 'settings-item-$i'));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_focusNodes.isNotEmpty) {
-        _focusNodes[0].requestFocus();
-      }
+      if (_focusNodes.isNotEmpty) _focusNodes[0].requestFocus();
     });
   }
 
@@ -115,157 +45,136 @@ class _PlayerSettingsDialogState extends State<PlayerSettingsDialog> {
     super.dispose();
   }
 
-  void _moveFocus(int dir) {
-    if (_focusNodes.isEmpty) return;
-    final next = (_focusedIndex + dir).clamp(0, _focusNodes.length - 1);
-    setState(() => _focusedIndex = next);
-    _focusNodes[next].requestFocus();
-  }
-
-  KeyEventResult _onKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _moveFocus(1);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _moveFocus(-1);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.goBack) {
-      widget.onClose();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  Widget _focusableItem({
-    required int listIndex,
-    required Widget child,
-    required VoidCallback onActivate,
-  }) {
-    final isFocused = _focusedIndex == listIndex;
-    return Focus(
-      focusNode: _focusNodes[listIndex],
-      onFocusChange: (v) {
-        if (v) setState(() => _focusedIndex = listIndex);
-      },
-      onKeyEvent: (_, e) {
-        if (e is KeyDownEvent &&
-            (e.logicalKey == LogicalKeyboardKey.enter ||
-                e.logicalKey == LogicalKeyboardKey.select)) {
-          onActivate();
-          return KeyEventResult.handled;
-        }
-        return _onKey(e);
-      },
-      child: GestureDetector(
-        onTap: onActivate,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            color: isFocused ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isFocused ? AppTheme.primary : Colors.transparent,
-              width: 1.5,
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final state = widget.state;
-    int currentVisualIndex = 0; 
-
     return AlertDialog(
       backgroundColor: Colors.black.withOpacity(0.95),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.primary, width: 1.5),
+        side: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 1.5),
       ),
       title: const Row(
         children: [
-          Icon(Icons.settings, color: Colors.white),
-          Spacer(),
-          Text('প্লেয়ার সেটিংস', style: TextStyle(color: Colors.white)),
+          Icon(Icons.settings, color: AppTheme.primary),
+          SizedBox(width: 10),
+          Text('প্লেয়ার সেটিংস', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _focusableItem(
-            listIndex: currentVisualIndex++,
-            onActivate: () => state.togglePlayerBoot(),
-            child: SwitchListTile(
-              title: const Text('Boot Player (অটো প্লেয়ার)', style: TextStyle(color: Colors.white)),
-              subtitle: Text(
-                'অ্যাপ চালু হলে সরাসরি লাইভ টিভি ওপেন হবে',
-                style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 12),
+      content: SizedBox(
+        width: 350,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ১. Boot Switch
+            _SettingsTile(
+              focusNode: _focusNodes[0],
+              icon: Icons.power_settings_new_rounded,
+              title: 'Boot Player (অটো প্লেয়ার)',
+              subtitle: 'অ্যাপ চালু হলে সরাসরি লাইভ টিভি ওপেন হবে',
+              trailing: Switch(
+                value: widget.state.isPlayerBootEnabled,
+                onChanged: (_) => widget.state.togglePlayerBoot(),
+                activeColor: AppTheme.primary,
               ),
-              activeColor: AppTheme.primary,
-              value: state.isPlayerBootEnabled,
-              onChanged: (v) => state.togglePlayerBoot(),
+              onTap: () => widget.state.togglePlayerBoot(),
             ),
-          ),
 
-          if (state.isAuthenticated)
-            _focusableItem(
-              listIndex: currentVisualIndex++,
-              onActivate: () {},
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: ListTile(
-                  leading: const Icon(Icons.stars_rounded, color: Color(0xFFEAB308)),
-                  title: Text(
-                    state.userProfile?.email ?? '',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    'প্যাকেজ: ${state.userProfile?.plan ?? ''}',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ),
+            // ২. User Info (যদি থাকে)
+            if (widget.state.isAuthenticated)
+              _SettingsTile(
+                focusNode: _focusNodes[1],
+                icon: Icons.stars_rounded,
+                title: widget.state.userProfile?.email ?? 'User',
+                subtitle: 'প্যাকেজ: ${widget.state.userProfile?.plan ?? 'N/A'}',
+                onTap: () {},
               ),
-            ),
 
-          const Divider(color: Colors.white12, height: 20),
-
-          _focusableItem(
-            listIndex: currentVisualIndex++,
-            onActivate: widget.onAppInfo,
-            child: ListTile(
-              leading: const Icon(Icons.info_outline_rounded, color: AppTheme.primary),
-              title: const Text('অ্যাপ তথ্য (App Info)', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('ভার্সন ও ডেভেলপার তথ্য',
-                  style: TextStyle(color: Colors.white54, fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+            // ৩. App Info
+            _SettingsTile(
+              focusNode: _focusNodes[widget.state.isAuthenticated ? 2 : 1],
+              icon: Icons.info_outline_rounded,
+              title: 'অ্যাপ তথ্য (App Info)',
+              subtitle: 'ভার্সন ও ডেভেলপার তথ্য',
+              onTap: widget.onAppInfo,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
-        _focusableItem(
-          listIndex: currentVisualIndex++,
-          onActivate: widget.onNavigateSettings,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text(
-              'সেটিংস', 
-              style: TextStyle(color: _focusedIndex == (currentVisualIndex - 1) ? Colors.white : Colors.white54),
-            ),
+        // ৪. Settings Action Button
+        Focus(
+          focusNode: _focusNodes.last,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+              widget.onNavigateSettings();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: TextButton(
+            onPressed: widget.onNavigateSettings,
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+            child: const Text('সিস্টেম সেটিংস'),
           ),
         ),
         TextButton(
           onPressed: widget.onClose,
-          child: Text('বন্ধ', style: TextStyle(color: AppTheme.primary)),
+          child: const Text('বন্ধ', style: TextStyle(color: Colors.white54)),
         ),
       ],
+    );
+  }
+}
+
+// একটি ক্লিন এবং ফোকাসযোগ্য কাস্টম টাইল
+class _SettingsTile extends StatelessWidget {
+  final FocusNode focusNode;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Widget? trailing;
+
+  const _SettingsTile({
+    required this.focusNode,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: focusNode,
+      onKeyEvent: (_, e) {
+        if (e is KeyDownEvent && (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.select)) {
+          onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(builder: (context) {
+        final focused = focusNode.hasFocus;
+        return InkWell(
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: focused ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              leading: Icon(icon, color: focused ? Colors.white : AppTheme.primary),
+              title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+              subtitle: Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+              trailing: trailing,
+            ),
+          ),
+        );
+      }),
     );
   }
 }
