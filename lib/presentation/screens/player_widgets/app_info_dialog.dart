@@ -17,9 +17,8 @@ class _AppInfoDialogState extends State<AppInfoDialog> {
   @override
   void initState() {
     super.initState();
-    // ডায়ালগ ওপেন হওয়ার সাথে সাথে বন্ধ বোতামে রিমোট ফোকাস সেট হবে
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _closeFocusNode.requestFocus();
+      if (mounted) _closeFocusNode.requestFocus();
     });
   }
 
@@ -31,170 +30,99 @@ class _AppInfoDialogState extends State<AppInfoDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.black.withOpacity(0.95),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 1.5),
-      ),
-      title: const Row(
-        children: [
-          Icon(Icons.info_rounded, color: AppTheme.primary),
-          SizedBox(width: 10),
-          Text(
-            'অ্যাপ তথ্য',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 320, // টিভির জন্য একটি স্ট্যান্ডার্ড চওড়া সাইজ
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    // ব্যাক বাটন হ্যান্ডলিংয়ের জন্য Focus-এর বাইরে একটি মেইন কন্টেইনার
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.goBack): () => Navigator.pop(context),
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(context),
+      },
+      child: AlertDialog(
+        backgroundColor: Colors.black.withOpacity(0.95),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 1.5),
+        ),
+        title: const Row(
           children: [
-            // ===== ১. অ্যাপ নাম ও ভার্সন কার্ড =====
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Live TV Player', // App Name
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Version 1.0.0', // App Version
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // ===== ২. ডেভেলপার ও কোম্পানি তথ্য কার্ড =====
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // কোম্পানি তথ্য
-                  const Text(
-                    'কোম্পানি:',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Ltv digital Limited',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Divider(color: Colors.white10, height: 1),
-                  ),
-
-                  // ডেভেলপার তথ্য
-                  const Text(
-                    'ডেভেলপার:',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Anirban Sumon',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ===== ৩. Powered By সেকশন =====
-            Center(
-              child: Text(
-                'Powered by ottking',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
+            Icon(Icons.info_rounded, color: AppTheme.primary),
+            SizedBox(width: 10),
+            Text('অ্যাপ তথ্য', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
-      ),
-      actionsPadding: const EdgeInsets.only(bottom: 16, right: 16),
-      actions: [
-        // ===== ৪. ফোকাসযোগ্য বন্ধ (Close) বোতাম =====
-        Focus(
-          focusNode: _closeFocusNode,
-          onFocusChange: (hasFocus) {
-            setState(() {
-              _isCloseFocused = hasFocus;
-            });
-          },
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent &&
-                (event.logicalKey == LogicalKeyboardKey.enter ||
-                    event.logicalKey == LogicalKeyboardKey.select ||
-                    event.logicalKey == LogicalKeyboardKey.space)) {
-              Navigator.pop(context);
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
+        content: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _InfoCard(
+                title: 'Live TV Player',
+                subtitle: 'Version 1.0.0',
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                title: 'Ltv digital Limited',
+                subtitle: 'কোম্পানি',
+                isHighlighted: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          Focus(
+            focusNode: _closeFocusNode,
+            onFocusChange: (v) => setState(() => _isCloseFocused = v),
+            onKeyEvent: (_, event) {
+              if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+                Navigator.pop(context);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                // রিমোট দিয়ে সিলেক্ট করলেই কেবল ব্যাকগ্রাউন্ড কালার ও বর্ডার আসবে
-                color: _isCloseFocused
-                    ? AppTheme.primary.withOpacity(0.25)
-                    : Colors.transparent,
+                color: _isCloseFocused ? AppTheme.primary : Colors.white12,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _isCloseFocused ? AppTheme.primary : Colors.white24,
-                  width: _isCloseFocused ? 2 : 1,
-                ),
               ),
               child: Text(
                 'বন্ধ',
                 style: TextStyle(
-                  color: _isCloseFocused ? Colors.white : Colors.white70,
-                  fontSize: 14,
+                  color: _isCloseFocused ? Colors.black : Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+// কোড রিইউজেবিলিটির জন্য ছোট হেল্পার উইজেট
+class _InfoCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool isHighlighted;
+
+  const _InfoCard({required this.title, required this.subtitle, this.isHighlighted = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isHighlighted ? AppTheme.primary.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+        ],
+      ),
     );
   }
 }
