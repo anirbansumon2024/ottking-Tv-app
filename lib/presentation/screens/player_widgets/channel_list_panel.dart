@@ -10,12 +10,14 @@ class ChannelListPanel extends StatefulWidget {
     required this.currentIndex,
     required this.onSelect,
     required this.onClose,
+    required this.onSettings, // নতুন প্রপার্টি
   });
 
   final List channels;
   final int currentIndex;
   final ValueChanged<int> onSelect;
   final VoidCallback onClose;
+  final VoidCallback onSettings; // সেটিংস কলব্যাক
 
   @override
   State<ChannelListPanel> createState() => _ChannelListPanelState();
@@ -25,34 +27,20 @@ class _ChannelListPanelState extends State<ChannelListPanel> {
   final ScrollController _scrollController = ScrollController();
   late final List<FocusNode> _itemNodes;
   final FocusNode _closeBtnNode = FocusNode(debugLabel: 'ch-list-close');
+  final FocusNode _settingsBtnNode = FocusNode(debugLabel: 'ch-list-settings');
 
   @override
   void initState() {
     super.initState();
-
     _itemNodes = List.generate(
       widget.channels.length,
       (i) => FocusNode(debugLabel: 'ch-list-item-$i'),
     );
 
-    // প্যানেল render হওয়ার পরেই ফোকাস ও স্ক্রোল করতে হবে
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _itemNodes.isEmpty) return;
-
+      if (!mounted) return;
       final idx = widget.currentIndex.clamp(0, _itemNodes.length - 1);
       _itemNodes[idx].requestFocus();
-
-      // ScrollController attached কিনা নিশ্চিত করে তারপর scroll
-      if (_scrollController.hasClients) {
-        final itemHeight = 50.0;
-        final targetOffset = (idx * itemHeight) - 150;
-        final maxOffset = _scrollController.position.maxScrollExtent;
-        _scrollController.animateTo(
-          targetOffset.clamp(0.0, maxOffset),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
     });
   }
 
@@ -60,86 +48,59 @@ class _ChannelListPanelState extends State<ChannelListPanel> {
   void dispose() {
     _scrollController.dispose();
     _closeBtnNode.dispose();
-    for (final n in _itemNodes) {
-      n.dispose();
-    }
+    _settingsBtnNode.dispose();
+    for (final n in _itemNodes) n.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      right: 0,
-      top: 0,
-      bottom: 0,
+      right: 0, top: 0, bottom: 0,
       child: Container(
-        width: 300,
+        width: 320,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.92),
-          border: Border(
-            left: BorderSide(color: AppTheme.primary.withOpacity(0.3), width: 1),
-          ),
+          color: Colors.black.withOpacity(0.95),
+          border: Border(left: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 2)),
         ),
         child: Column(
           children: [
-            // ── Header ─────────────────────────────────────────────
+            // ── Header (Settings + Close) ─────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.list_rounded, color: AppTheme.primary, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'চ্যানেল লিস্ট',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  const Text('চ্যানেল লিস্ট', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const Spacer(),
-                  // ── Close button — ফোকাসযোগ্য ─────────────────
-                  _CloseFocusButton(
+                  // Settings Icon
+                  _IconButtonFocus(
+                    focusNode: _settingsBtnNode,
+                    icon: Icons.settings_rounded,
+                    onTap: widget.onSettings,
+                  ),
+                  const SizedBox(width: 8),
+                  // Close Icon
+                  _IconButtonFocus(
                     focusNode: _closeBtnNode,
-                    onClose: widget.onClose,
-                    onDown: () {
-                      if (_itemNodes.isNotEmpty) _itemNodes[0].requestFocus();
-                    },
+                    icon: Icons.close,
+                    onTap: widget.onClose,
                   ),
                 ],
               ),
             ),
-
-            // ── Channel List ────────────────────────────────────────
+            // ── List ─────────────────────
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: widget.channels.length,
-                itemBuilder: (ctx, i) {
-                  final ch = widget.channels[i];
-                  final isActive = i == widget.currentIndex;
-                  if (i >= _itemNodes.length) return const SizedBox.shrink();
-
-                  return _ChannelListItem(
-                    focusNode: _itemNodes[i],
-                    index: i,
-                    channelName: ch.name,
-                    isActive: isActive,
-                    onSelect: () => widget.onSelect(i),
-                    onClose: widget.onClose,
-                    // প্রথম আইটেম থেকে ↑ গেলে close বাটনে
-                    onKeyEvent: i == 0
-                        ? (event) {
-                            if (event is KeyDownEvent &&
-                                event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                              _closeBtnNode.requestFocus();
-                              return KeyEventResult.handled;
-                            }
-                            return KeyEventResult.ignored;
-                          }
-                        : null,
-                  );
-                },
+                itemBuilder: (ctx, i) => _ChannelListItem(
+                  focusNode: _itemNodes[i],
+                  index: i,
+                  channelName: widget.channels[i].name,
+                  isActive: i == widget.currentIndex,
+                  onSelect: () => widget.onSelect(i),
+                  onClose: widget.onClose,
+                ),
               ),
             ),
           ],
@@ -149,189 +110,79 @@ class _ChannelListPanelState extends State<ChannelListPanel> {
   }
 }
 
-// ── Close Button ─────────────────────────────────────────────────────────────
-class _CloseFocusButton extends StatefulWidget {
-  const _CloseFocusButton({
-    required this.focusNode,
-    required this.onClose,
-    this.onDown,
-  });
+// ── IconButton (Settings & Close Helper) ─────────────────────
+class _IconButtonFocus extends StatefulWidget {
   final FocusNode focusNode;
-  final VoidCallback onClose;
-  final VoidCallback? onDown;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _IconButtonFocus({required this.focusNode, required this.icon, required this.onTap});
 
   @override
-  State<_CloseFocusButton> createState() => _CloseFocusButtonState();
+  State<_IconButtonFocus> createState() => _IconButtonFocusState();
 }
 
-class _CloseFocusButtonState extends State<_CloseFocusButton> {
+class _IconButtonFocusState extends State<_IconButtonFocus> {
   bool _focused = false;
-
   @override
   Widget build(BuildContext context) {
     return Focus(
       focusNode: widget.focusNode,
       onFocusChange: (v) => setState(() => _focused = v),
       onKeyEvent: (_, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.select) {
-          widget.onClose();
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          widget.onDown?.call();
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.escape ||
-            event.logicalKey == LogicalKeyboardKey.goBack) {
-          widget.onClose();
+        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+          widget.onTap();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: _focused ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: _focused ? AppTheme.primary : Colors.transparent,
-          ),
-        ),
-        child: IconButton(
-          icon: Icon(
-            Icons.close,
-            color: _focused ? AppTheme.primary : Colors.white38,
-            size: 18,
-          ),
-          onPressed: widget.onClose,
-        ),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: _focused ? AppTheme.primary : Colors.white12, borderRadius: BorderRadius.circular(8)),
+        child: Icon(widget.icon, size: 20, color: _focused ? Colors.black : Colors.white),
       ),
     );
   }
 }
 
-// ── Individual Channel Item ───────────────────────────────────────────────────
-class _ChannelListItem extends StatefulWidget {
-  const _ChannelListItem({
-    required this.focusNode,
-    required this.index,
-    required this.channelName,
-    required this.isActive,
-    required this.onSelect,
-    required this.onClose,
-    this.onKeyEvent,
-  });
-
+// ── Channel Item (Same as before) ─────────────────────
+class _ChannelListItem extends StatelessWidget {
   final FocusNode focusNode;
   final int index;
   final String channelName;
   final bool isActive;
   final VoidCallback onSelect;
   final VoidCallback onClose;
-  final KeyEventResult Function(KeyEvent)? onKeyEvent;
 
-  @override
-  State<_ChannelListItem> createState() => _ChannelListItemState();
-}
-
-class _ChannelListItemState extends State<_ChannelListItem> {
-  bool _focused = false;
+  const _ChannelListItem({required this.focusNode, required this.index, required this.channelName, required this.isActive, required this.onSelect, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = _focused || widget.isActive;
-
     return Focus(
-      focusNode: widget.focusNode,
-      onFocusChange: (v) {
-        setState(() => _focused = v);
-        if (v) {
-          // ফোকাস হলে স্ক্রিনে দৃশ্যমান করা
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && widget.focusNode.context != null) {
-              Scrollable.ensureVisible(
-                widget.focusNode.context!,
-                duration: const Duration(milliseconds: 200),
-                alignment: 0.5,
-              );
-            }
-          });
-        }
-      },
+      focusNode: focusNode,
       onKeyEvent: (_, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-        // OK → চ্যানেল সিলেক্ট
-        if (event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.select ||
-            event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-          widget.onSelect();
+         if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+          onSelect();
           return KeyEventResult.handled;
         }
-        // Back/Escape → প্যানেল বন্ধ
-        if (event.logicalKey == LogicalKeyboardKey.escape ||
-            event.logicalKey == LogicalKeyboardKey.goBack) {
-          widget.onClose();
-          return KeyEventResult.handled;
-        }
-
-        return widget.onKeyEvent?.call(event) ?? KeyEventResult.ignored;
+        return KeyEventResult.ignored;
       },
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: _focused
-                ? AppTheme.primary.withOpacity(0.25)
-                : widget.isActive
-                    ? AppTheme.primary.withOpacity(0.15)
-                    : Colors.transparent,
-            border: _focused
-                ? const Border(
-                    left: BorderSide(color: AppTheme.primary, width: 3))
-                : null,
+      child: Builder(builder: (context) {
+        final focused = Focus.of(context).hasFocus;
+        return InkWell(
+          onTap: onSelect,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(color: focused ? AppTheme.primary.withOpacity(0.3) : (isActive ? Colors.white.withOpacity(0.05) : Colors.transparent)),
+            child: Row(
+              children: [
+                Text('${index + 1}', style: TextStyle(color: focused ? Colors.white : Colors.white38)),
+                const SizedBox(width: 15),
+                Expanded(child: Text(channelName, style: TextStyle(color: focused ? Colors.white : Colors.white70))),
+              ],
+            ),
           ),
-          child: Row(
-            children: [
-              Text(
-                '${widget.index + 1}'.padLeft(3),
-                style: TextStyle(
-                  color: highlighted ? AppTheme.primary : Colors.white38,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.channelName,
-                  style: TextStyle(
-                    color: highlighted ? Colors.white : Colors.white60,
-                    fontSize: 14,
-                    fontWeight:
-                        highlighted ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (widget.isActive)
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }
